@@ -1,0 +1,11 @@
+# Ignorar todo
+*
+
+# ¡Exceptuar los archivos .py!
+!*.py
+
+# También exceptuar los directorios
+!*/
+
+# Exceptuar el propio .gitignore
+!.gitignore
