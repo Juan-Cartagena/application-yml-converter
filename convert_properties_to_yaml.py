@@ -1,8 +1,9 @@
 import os
 import glob
 import yaml
+import re
 
-# 🔐 Claves sensibles en formato .properties → nombre de variable de entorno
+# 🔐 Claves sensibles: clave .properties → nombre variable de entorno
 SENSITIVE_KEYS = {
     "spring.datasource.username": "DB_USERNAME",
     "spring.datasource.password": "DB_PASSWORD",
@@ -10,6 +11,10 @@ SENSITIVE_KEYS = {
     "spring.security.oauth2.client.registration.google.client-secret": "GOOGLE_CLIENT_SECRET",
     "app.jwt.secret": "JWT_SECRET"
 }
+
+# 🔧 Configuración para entorno "pre"
+PRE_DB_HOST = "localhost"
+PRE_DB_PORT = "5433"
 
 def parse_properties_file(file_path):
     props = {}
@@ -51,6 +56,16 @@ def write_env_file(env_vars, output_dir):
         for key, value in env_vars.items():
             f.write(f"{key}={value}\n")
 
+def modify_url_for_pre(props):
+    url_key = "spring.datasource.url"
+    if url_key in props:
+        original_url = props[url_key]
+        # Reemplaza host y puerto en una URL típica de JDBC
+        # Ejemplo: jdbc:postgresql://localhost:5432/dbname
+        new_url = re.sub(r'//([^:/]+)(:\d+)?', f"//{PRE_DB_HOST}:{PRE_DB_PORT}", original_url)
+        props[url_key] = new_url
+    return props
+
 def main():
     files = glob.glob("*---application.properties")
     if not files:
@@ -64,20 +79,25 @@ def main():
             print(f"⚠️  Archivo {file} no tiene 'spring.application.name'. Se omite.")
             continue
 
-        props, env_vars = convert_sensitive_props(props)
-
         output_dir = os.path.join(os.getcwd(), app_name)
         os.makedirs(output_dir, exist_ok=True)
 
-        yaml_content = convert_properties_to_yaml(props)
+        # ✅ application-local.yml
+        props_local, env_vars = convert_sensitive_props(props.copy())
+        yaml_local = convert_properties_to_yaml(props_local)
         with open(os.path.join(output_dir, "application-local.yml"), 'w', encoding='utf-8') as f:
-            f.write(yaml_content)
-
+            f.write(yaml_local)
         if env_vars:
             write_env_file(env_vars, output_dir)
-            print(f"✅ {file} → application-local.yml + .env (con variables sensibles)")
-        else:
-            print(f"✅ {file} → application-local.yml (sin variables sensibles)")
+
+        # 🆕 application-pre.yml con IP y puerto personalizados
+        props_pre = modify_url_for_pre(props.copy())
+        props_pre, _ = convert_sensitive_props(props_pre)
+        yaml_pre = convert_properties_to_yaml(props_pre)
+        with open(os.path.join(output_dir, "application-pre.yml"), 'w', encoding='utf-8') as f:
+            f.write(yaml_pre)
+
+        print(f"✅ {file} → application-local.yml, application-pre.yml + .env")
 
 if __name__ == "__main__":
     main()
