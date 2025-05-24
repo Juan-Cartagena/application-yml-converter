@@ -34,7 +34,7 @@ def convert_properties_to_yaml(props):
     return yaml.dump(nested, sort_keys=False, allow_unicode=True)
 
 def main():
-    files = glob.glob("audit---application.properties")
+    files = glob.glob("*---application.properties")
     for file in files:
         props = parse_properties_file(file)
         app_name = props.get("spring.application.name")
