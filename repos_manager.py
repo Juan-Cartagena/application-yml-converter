@@ -2,7 +2,7 @@ import os
 import subprocess
 import shutil
 
-# ✅ Configuración fácilmente editable
+# ✅ Configuraciones fáciles de editar
 REPO_URLS = [
     "https://github.com/cartagena-corp/lm-audit.git",
     "https://github.com/cartagena-corp/lm-comments.git",
@@ -19,12 +19,8 @@ REPO_URLS = [
 ]
 
 COMMIT_MESSAGE = "Actualización de archivos de configuración"
-CONFIG_FILES = ["application-local.yml", "application-pre.yml"]
+TARGET_DIR = r"C:/git/cartagena-corporation"  # Directorio donde se clonan los repos
 
-# Ruta base donde se clonan los repositorios
-TARGET_DIR = r"C:\git\cartagena-corporation\la-muralla"  # <- Cambiar si se desea otra ubicación
-
-# Ruta donde está el script (y los archivos yml originales)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -49,17 +45,26 @@ def clone_repos():
         else:
             print(f"✅ Repositorio {repo_name} ya existe, se omite clonación.")
 
-        # Crear carpeta config y copiar archivos
-        config_path = os.path.join(repo_path, "src/main/resources/config")
+        # Crear carpeta de configuración dentro del repo
+        config_path = os.path.join(repo_path, "src/main/resources/config/")
         os.makedirs(config_path, exist_ok=True)
 
-        for file in CONFIG_FILES:
-            src_file = os.path.join(SCRIPT_DIR, file)
-            if os.path.exists(src_file):
-                shutil.copy(src_file, config_path)
-                print(f"📄 Copiado {file} a {config_path}")
-            else:
-                print(f"⚠️ Archivo {file} no encontrado en {SCRIPT_DIR}")
+        # Ruta desde donde copiar los archivos yml personalizados
+        custom_config_dir = os.path.join(SCRIPT_DIR, repo_name)
+        local_file = os.path.join(custom_config_dir, "application-local.yml")
+        pre_file = os.path.join(custom_config_dir, "application-pre.yml")
+
+        if os.path.exists(local_file):
+            shutil.copy(local_file, config_path)
+            print(f"📄 Copiado {local_file} a {config_path}")
+        else:
+            print(f"⚠️ No encontrado: {local_file}")
+
+        if os.path.exists(pre_file):
+            shutil.copy(pre_file, config_path)
+            print(f"📄 Copiado {pre_file} a {config_path}")
+        else:
+            print(f"⚠️ No encontrado: {pre_file}")
 
 
 def push_changes():
@@ -79,7 +84,7 @@ def push_changes():
 
 
 if __name__ == "__main__":
-    opcion = input("¿Qué deseas hacer?\n1. Clonar y copiar archivos\n2. Subir cambios (pull + commit + push)\nSelecciona (1/2): ")
+    opcion = input("¿Qué deseas hacer?\n1. Clonar y copiar archivos específicos\n2. Subir cambios (pull + commit + push)\nSelecciona (1/2): ")
 
     if opcion == "1":
         clone_repos()
